@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>JUDI — Mini App</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
+  <style>
+    :root {
+      --bg: #0e0e14;
+      --bg2: #16161f;
+      --card: #1c1c28;
+      --card2: #232334;
+      --border: #2a2a3d;
+      --text: #f2f2f7;
+      --muted: #8a8a9e;
+      --accent: #ff7a3d;
+      --accent2: #ff9a5c;
+      --red: #ff4d4d;
+      --green: #4ade80;
+      --gray: #6b7280;
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: radial-gradient(1200px 600px at 50% -10%, #1f1a2e 0%, var(--bg) 60%);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    .app { max-width: 480px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; padding-bottom: 70px; }
+
+    /* Header */
+    .header {
+      padding: 16px 18px 10px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; background: rgba(14,14,20,.75); backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px); z-index: 10; border-bottom: 1px solid var(--border);
+    }
+    .header h1 { font-size: 20px; font-weight: 700; }
+    .header .sub { font-size: 12px; color: var(--muted); }
+    .header .premium-badge {
+      background: linear-gradient(135deg, #ff8c42, #ff5e3a);
+      color: #fff; font-size: 11px; font-weight: 700;
+      padding: 5px 12px; border-radius: 20px; cursor: pointer;
+      display: flex; align-items: center; gap: 4px;
+      box-shadow: 0 4px 12px rgba(255,100,50,.35);
+    }
+    .header .premium-badge img { width: 14px; height: 14px; }
+
+    /* Cards */
+    .card {
+      background: linear-gradient(180deg, var(--card) 0%, var(--bg2) 100%);
+      border: 1px solid var(--border);
+      border-radius: 20px; padding: 16px; margin: 10px 14px;
+      box-shadow: 0 6px 20px rgba(0,0,0,.25);
+    }
+    .card-title { font-size: 15px; font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .card-desc { font-size: 13px; color: var(--muted); }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 10px; padding: 0 14px; }
+    .tile {
+      background: linear-gradient(180deg, var(--card) 0%, var(--bg2) 100%);
+      border: 1px solid var(--border); border-radius: 18px;
+      padding: 12px 14px; cursor: pointer;
+      transition: transform .12s, border-color .15s, box-shadow .15s;
+      box-shadow: 0 4px 14px rgba(0,0,0,.2);
+      display: flex; align-items: center; gap: 12px;
+    }
+    .tile:active { transform: scale(.96); }
+    .tile:hover { border-color: var(--accent); box-shadow: 0 6px 18px rgba(255,100,50,.15); }
+    .tile .emoji { font-size: 26px; margin-bottom: 8px; }
+    .tile .name { font-size: 14px; font-weight: 600; }
+    .tile .desc { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .tile.premium::after {
+      content: "👑"; position: absolute; top: 8px; right: 10px; font-size: 14px;
+    }
+    .tile { position: relative; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 10px 16px; border-radius: 12px; border: none; cursor: pointer;
+      font-size: 14px; font-weight: 600; transition: transform .08s, opacity .15s;
+    }
+    .btn:active { transform: scale(.96); }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent2); }
+    .btn-ghost { background: var(--card2); color: var(--text); border: 1px solid var(--border); }
+    .btn-danger { background: var(--red); color: #fff; }
+    .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 8px; }
+    .btn-block { width: 100%; }
+
+    /* Inputs */
+    input, textarea, select {
+      width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border);
+      background: var(--bg2); color: var(--text); font-size: 14px; outline: none;
+      font-family: inherit;
+    }
+    input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+    textarea { resize: vertical; min-height: 70px; }
+    label { font-size: 12px; color: var(--muted); margin-bottom: 4px; display: block; }
+    .field { margin-bottom: 12px; }
+
+    /* Template card */
+    .tpl-card {
+      background: linear-gradient(180deg, var(--card) 0%, var(--bg2) 100%);
+      border: 1px solid var(--border); border-radius: 18px;
+      padding: 14px; margin-bottom: 10px; display: flex; gap: 12px; align-items: flex-start;
+      box-shadow: 0 4px 14px rgba(0,0,0,.2);
+    }
+    .tpl-emoji { font-size: 24px; }
+    .tpl-body { flex: 1; min-width: 0; }
+    .tpl-name { font-weight: 600; font-size: 14px; }
+    .tpl-text { font-size: 13px; color: var(--muted); margin-top: 2px; word-break: break-word; }
+    .tpl-meta { font-size: 11px; color: var(--accent); margin-top: 4px; }
+    .tpl-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+    /* Chat list */
+    .chat-item {
+      display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+      border-radius: 18px; background: linear-gradient(180deg, var(--card) 0%, var(--bg2) 100%);
+      margin-bottom: 8px; cursor: pointer; border: 1px solid var(--border);
+      box-shadow: 0 4px 14px rgba(0,0,0,.2);
+    }
+    .chat-item.active-mute { border-color: var(--red); }
+    .chat-avatar {
+      width: 38px; height: 38px; border-radius: 50%; background: var(--accent);
+      display: flex; align-items: center; justify-content: center; font-weight: 700; color: #fff;
+    }
+    .chat-name { font-weight: 600; font-size: 14px; }
+    .chat-sub { font-size: 12px; color: var(--muted); }
+
+    /* Bottom nav */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 480px;
+      background: rgba(22,22,31,.85); border-top: 1px solid var(--border);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      display: flex; justify-content: space-around; padding: 8px 0 14px; z-index: 20;
+    }
+    .nav-item { display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; color: var(--muted); font-size: 11px; padding: 4px 12px; }
+    .nav-item.active { color: var(--accent); }
+    .nav-item .ni { font-size: 20px; }
+    .nav-item .ni img { width: 20px; height: 20px; }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 50;
+      display: flex; align-items: flex-end; justify-content: center;
+    }
+    .modal {
+      background: linear-gradient(180deg, var(--card) 0%, var(--bg2) 100%);
+      border-radius: 24px 24px 0 0; width: 100%; max-width: 480px;
+      padding: 20px; max-height: 85vh; overflow-y: auto;
+      box-shadow: 0 -8px 30px rgba(0,0,0,.35);
+    }
+    .modal h2 { font-size: 18px; margin-bottom: 14px; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 14px; }
+
+    /* Misc */
+    .section-header { padding: 14px 14px 6px; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+    .row { display: flex; gap: 8px; align-items: center; }
+    .spacer { height: 10px; }
+    .empty { text-align: center; color: var(--muted); padding: 30px 14px; font-size: 13px; }
+    .crown { color: #ffd700; }
+    .toggle { display: flex; align-items: center; gap: 8px; }
+    .switch {
+      width: 40px; height: 22px; background: var(--card2); border-radius: 12px; position: relative; cursor: pointer;
+      border: 1px solid var(--border);
+    }
+    .switch.on { background: var(--accent); }
+    .switch::after {
+      content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: #fff; border-radius: 50%; transition: left .2s;
+    }
+    .switch.on::after { left: 20px; }
+    .color-dot { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
+    .color-dot.selected { border-color: #fff; }
+    .preview-box {
+      background: var(--bg2); border: 1px dashed var(--border); border-radius: 10px;
+      padding: 10px; font-size: 13px; margin-top: 8px; min-height: 40px; white-space: pre-wrap;
+    }
+    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+    .chip { display: inline-block; padding: 4px 10px; border-radius: 20px; background: var(--card2); font-size: 12px; margin: 2px; cursor: pointer; border: 1px solid var(--border); }
+    .chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .hidden { display: none !important; }
+    .toast {
+      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+      background: var(--accent); color: #fff; padding: 10px 18px; border-radius: 20px; font-size: 13px;
+      z-index: 60; opacity: 0; transition: opacity .3s; pointer-events: none;
+    }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="header">
+    <div>
+      <h1>JUDI</h1>
+      <div class="sub" id="userLine">Панель управления чатами</div>
+    </div>
+    <div class="premium-badge" id="premiumBadge" onclick="openPremium()"><iconify-icon icon="tabler:crown" width="14" height="14"></iconify-icon> Premium</div>
+  </div>
+
+  <div id="view"></div>
+</div>
+
+<div class="bottom-nav">
+  <div class="nav-item active" data-nav="home" onclick="nav('home')"><div class="ni"><iconify-icon icon="tabler:home" width="20" height="20"></iconify-icon></div>Главная</div>
+  <div class="nav-item" data-nav="chats" onclick="nav('chats')"><div class="ni"><iconify-icon icon="tabler:message" width="20" height="20"></iconify-icon></div>Чаты</div>
+  <div class="nav-item" data-nav="settings" onclick="nav('settings')"><div class="ni"><iconify-icon icon="tabler:settings" width="20" height="20"></iconify-icon></div>Настройки</div>
+  <div class="nav-item" data-nav="profile" onclick="nav('profile')"><div class="ni"><iconify-icon icon="tabler:user" width="20" height="20"></iconify-icon></div>Профиль</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ---------- State ----------
+const tg = window.Telegram && window.Telegram.WebApp;
+if (tg) { tg.ready(); tg.expand(); try { tg.setHeaderColor("#0e0e14"); tg.setBackgroundColor("#0e0e14"); } catch(e){} }
+
+const STORAGE_KEY = "judi_state_v1";
+const defaultState = {
+  premium: false,
+  chats: [],
+  spamTemplates: [
+    { id: 1, emoji: "👋", name: "Приветствие", text: "Привет! Как дела?", repeat: 1 },
+  ],
+  buttonTemplates: [],
+  afkTemplates: [
+    { id: 1, emoji: "🌙", name: "Отошёл", text: "Сейчас не у дел, скоро вернусь.", online: true, offline: false, active: false, once: false, cooldown: 60, activation_id: "", buttons: [] },
+  ],
+  muteReply: "Пользователь в муте.",
+  fontSettings: { all: true, mono: false, italic: false, bold: false, quote: false, underline: false, link: "", typing: false, chats: [] },
+  selectedChat: null,
+};
+let state = loadState();
+// Активация Premium по параметру URL / start_param (после оплаты Stars)
+try {
+  const params = new URLSearchParams(window.location.search);
+  const startParam = (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || "";
+  // Этот параметр формирует сервер бота; сервер всё равно повторно проверяет Premium перед отправкой.
+  if (params.get("premium") === "1") { state.premium = true; saveState(); }
+  // Загрузка списка чатов от бота
+  const settingsParam = params.get("settings");
+  if (settingsParam) {
+    try {
+      let sb64 = settingsParam.replace(/-/g,"+").replace(/_/g,"/");
+      while (sb64.length % 4) sb64 += "=";
+      const serverSettings = JSON.parse(atob(sb64));
+      if (Array.isArray(serverSettings.spamTemplates)) state.spamTemplates = serverSettings.spamTemplates;
+      if (Array.isArray(serverSettings.afkTemplates)) state.afkTemplates = serverSettings.afkTemplates;
+      if (Array.isArray(serverSettings.buttonTemplates)) state.buttonTemplates = serverSettings.buttonTemplates;
+      if (typeof serverSettings.muteReply === "string") state.muteReply = serverSettings.muteReply;
+      if (serverSettings.fontSettings && typeof serverSettings.fontSettings === "object") state.fontSettings = {...state.fontSettings,...serverSettings.fontSettings};
+      saveState();
+    } catch(e) { console.warn("JUDI settings payload invalid", e); }
+  }
+  const chatsParam = params.get("chats");
+  if (chatsParam) {
+    try {
+      let b64 = chatsParam.replace(/-/g,"+").replace(/_/g,"/");
+      while (b64.length % 4) b64 += "=";
+      const decoded = JSON.parse(atob(b64));
+      for (const [id, info] of Object.entries(decoded)) {
+        const cid = +id;
+        if (cid <= 0) continue; // только личные чаты
+        const title = (typeof info === "string") ? info : (info.title || ("Чат " + cid));
+        const avatar = (typeof info === "object" && info.avatar) ? info.avatar : null;
+        const existing = state.chats.find(c=>c.id===cid);
+        if (!existing) {
+          state.chats.push({ id: cid, name: title, avatar: (title||"?").charAt(0).toUpperCase(), avatarUrl: avatar, muted: false, last: (typeof info === "object" ? info.last : 0), type: "private" });
+        } else {
+          existing.name = title;
+          if (avatar) existing.avatarUrl = avatar;
+          if (typeof info === "object" && info.last) existing.last = info.last;
+          existing.type = "private";
+        }
+      }
+      // Сортировка по активности (новые сверху)
+      state.chats.sort((a,b) => (b.last||0) - (a.last||0));
+      saveState();
+    } catch(e){
+      console.error("Ошибка загрузки чатов:", e);
+    }
+  }
+  // Ссылка на бота (передаётся ботом через ?bot=username)
+  const botParam = params.get("bot") || "";
+  window._botLink = botParam ? ("https://t.me/" + botParam) : "";
+  const bannerParam = params.get("banner") || "banners/main_menu.mp4";
+  window._bannerVideo = decodeURIComponent(bannerParam);
+} catch(e){}
+
+// Удаляем старые демо-чаты (из первых версий)
+const legacyNames = { 1: "Общий чат", 2: "Игровой", 3: "Админка" };
+state.chats = state.chats.filter(c => !(legacyNames[c.id] && c.name === legacyNames[c.id]));
+
+function loadState(){ try { const s = JSON.parse(localStorage.getItem(STORAGE_KEY)); return s ? { ...defaultState, ...s } : { ...defaultState }; } catch(e){ return { ...defaultState }; } }
+function saveState(){ try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e){} }
+function syncSettingsToBot(){
+  if (!tg || !tg.sendData) return;
+  try {
+    const payload = JSON.stringify({action:"save_templates",spamTemplates:state.spamTemplates,afkTemplates:state.afkTemplates,buttonTemplates:state.buttonTemplates,muteReply:state.muteReply,fontSettings:state.fontSettings});
+    if (new TextEncoder().encode(payload).length > 3900) { toast("Слишком много данных для одной синхронизации. Удали лишние шаблоны и повтори."); return; }
+    tg.sendData(payload);
+  } catch(e){ toast("Не удалось синхронизировать настройки"); }
+}
+function toast(msg){ const t = document.getElementById("toast"); t.textContent = msg; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"), 2000); if(tg&&tg.HapticFeedback) try{tg.HapticFeedback.notificationOccurred("success");}catch(e){} }
+function uid(){ return Date.now() + Math.floor(Math.random()*1000); }
+
+// User line
+const u = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+const inlineLaunch = !!(tg && tg.initDataUnsafe && tg.initDataUnsafe.query_id);
+const connected = !!(tg && tg.sendData && !inlineLaunch);
+function canSendData(){ return connected; }
+document.getElementById("userLine").textContent = u
+  ? ("@" + (u.username || u.first_name || u.id) + (connected ? " · бот подключён" : " · открой reply-кнопкой"))
+  : "Тестовый режим (открой через бота)";
+if (state.premium) document.getElementById("premiumBadge").innerHTML = '<iconify-icon icon="tabler:crown" width="14" height="14"></iconify-icon> Premium';
+
+// ---------- Router ----------
+let currentView = "home";
+let currentSub = null; // for editors
+function nav(view){ currentView = view; currentSub = null; render(); updateNav(); }
+function updateNav(){ document.querySelectorAll(".nav-item").forEach(n=>n.classList.toggle("active", n.dataset.nav===currentView)); }
+function render(){
+  const v = document.getElementById("view");
+  if (currentView === "home") v.innerHTML = renderHome();
+  else if (currentView === "chats") v.innerHTML = renderChats();
+  else if (currentView === "settings") v.innerHTML = renderSettings();
+  else if (currentView === "profile") v.innerHTML = renderProfile();
+  else if (currentView === "section") v.innerHTML = renderSection(currentSub);
+  bindEvents();
+}
+function openSection(name){ currentView = "section"; currentSub = name; render(); }
+function backHome(){ currentView = "home"; currentSub = null; render(); updateNav(); }
+
+// ---------- Home ----------
+function renderHome(){
+  const tiles = [
+    { key:"commands", emoji:"⚡", icon:null, name:"Функции и команды", desc:"Все команды JUDI" },
+    { key:"chats", emoji:"💬", icon:"icons/chats.png", name:"Чаты", desc:"Список и поиск" },
+    { key:"games", emoji:"🎮", icon:"icons/games.png", name:"Игры", desc:"Угадай слово" },
+    { key:"streak", emoji:"🔥", icon:"icons/огонек.png", name:"Сирийчик", desc:"Ежедневная серия с контактом" },
+    { key:"spam", emoji:"📢", icon:"icons/spam.png", name:"Спам", desc:"Шаблоны сообщений" },
+    { key:"buttons", emoji:"🔘", icon:"icons/buttons.png", name:"Сообщения с кнопками", desc:"Конструктор", premium:true },
+    { key:"afk", emoji:"🌙", icon:"icons/afk.png", name:"АФК", desc:"Статусы отсутствия" },
+    { key:"font", emoji:"🔤", icon:"icons/font.png", name:"Шрифт", desc:"Форматирование" },
+    { key:"mute", emoji:"🔇", icon:"icons/mute.png", name:"Мут", desc:"Управление чатами" },
+  ];
+  return `
+    <div class="card" style="padding:0;overflow:hidden;margin-top:12px;position:relative;">
+      <video id="judiBannerVideo"
+             src="${esc(window._bannerVideo || 'banners/main_menu.mp4')}"
+             autoplay muted loop playsinline
+             preload="metadata"
+             style="display:block;width:100%;height:180px;object-fit:cover;background:#111;">
+      </video>
+      <div style="position:absolute;left:14px;bottom:12px;background:rgba(0,0,0,.58);backdrop-filter:blur(8px);padding:7px 10px;border-radius:12px;font-size:12px;font-weight:600;">
+        JUDI • управление личкой
+      </div>
+    </div>
+    <div class="section-header">Инструменты</div>
+    <div class="grid">
+      ${tiles.map(t=>`
+        <div class="tile ${t.premium?'premium':''}" onclick="openSection('${t.key}')">
+          <div class="emoji" style="flex-shrink:0;">${t.icon?`<img src="${t.icon}" style="width:40px;height:40px;object-fit:contain;" alt="">`:t.emoji}</div>
+          <div style="flex:1;min-width:0;">
+            <div class="name">${t.name}</div>
+            <div class="desc">${t.desc}</div>
+          </div>
+        </div>
+      `).join("")}
+    </div>
+    <div class="spacer"></div>
+  `;
+}
+
+// ---------- Chats ----------
+function renderChats(){
+  const q = (window._chatQuery || "").toLowerCase();
+
+  const filtered = state.chats.filter(c =>
+    String(c.name || "").toLowerCase().includes(q)
+  );
+
+  return `
+    <div class="section-header">Чаты</div>
+
+    <div style="padding:0 14px 10px;display:flex;gap:8px;">
+
+      <button
+        class="btn btn-ghost"
+        style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;"
+        onclick="refreshChats()">
+
+        <iconify-icon
+          icon="tabler:refresh"
+          width="16"
+          height="16">
+        </iconify-icon>
+
+        Обновить
+      </button>
+
+    </div>
+
+    <div class="card" style="margin:10px 14px;">
+
+      <div class="card-title" style="font-size:13px;">
+        <iconify-icon
+          icon="tabler:briefcase"
+          width="16"
+          height="16">
+        </iconify-icon>
+
+        Telegram Business
+      </div>
+
+      <div
+        class="card-desc"
+        style="font-size:12px;line-height:1.6;">
+
+        JUDI показывает только те личные чаты,
+        к которым у бота есть доступ.
+
+        <br><br>
+
+        1. Telegram → Настройки →
+        <b>Telegram Business</b> → Чат-боты.
+
+        <br>
+
+        2. Выбери JUDI.
+
+        <br>
+
+        3. Разреши нужные личные чаты.
+
+        <br>
+
+        4. Напиши сообщение в разрешённом чате.
+
+        <br>
+
+        5. Нажми «Обновить» здесь.
+
+      </div>
+
+    </div>
+
+    <div style="padding:0 14px 10px;position:relative;">
+
+      <iconify-icon
+        icon="tabler:search"
+        width="16"
+        height="16"
+        style="
+          position:absolute;
+          left:26px;
+          top:50%;
+          transform:translateY(-50%);
+          opacity:.6;
+        ">
+      </iconify-icon>
+
+      <input
+        id="chatSearch"
+        placeholder="Поиск по названию..."
+        value="${esc(window._chatQuery || "")}"
+        style="padding-left:36px;">
+
+    </div>
+
+    <div style="padding:0 14px;">
+
+      ${
+        filtered.length
+        ?
+        filtered.map(c => `
+
+          <div
+            class="chat-item ${c.muted ? "active-mute" : ""}"
+            onclick="selectChat(${c.id})">
+
+            <div class="chat-avatar">
+
+              ${
+                c.avatarUrl
+                ?
+                `<img
+                  src="${esc(c.avatarUrl)}"
+                  style="
+                    width:100%;
+                    height:100%;
+                    border-radius:50%;
+                    object-fit:cover;
+                  "
+                  alt="">`
+
+                :
+
+                esc(c.avatar || "?")
+              }
+
+            </div>
+
+            <div style="flex:1;min-width:0;">
+
+              <div class="chat-name">
+                ${esc(c.name)}
+              </div>
+
+              <div class="chat-sub">
+                ID: ${c.id}
+                ·
+                ${c.muted ? "🔇 В муте" : "Активен"}
+              </div>
+
+            </div>
+
+            <button
+              class="btn btn-danger btn-sm"
+              style="display:inline-flex;align-items:center;"
+              onclick="
+                event.stopPropagation();
+                deleteChat(${c.id});
+              ">
+
+              <iconify-icon
+                icon="tabler:trash"
+                width="14"
+                height="14">
+              </iconify-icon>
+
+            </button>
+
+          </div>
+
+        `).join("")
+
+        :
+
+        `
+        <div class="empty">
+
+          Пока нет доступных чатов.
+
+          <br><br>
+
+          Подключи нужный чат через
+          <b>Telegram Business</b>.
+
+        </div>
+        `
+      }
+
+    </div>
+
+    <div class="card" style="margin:10px 14px;">
+
+      <div class="card-title" style="font-size:13px;">
+        ℹ️ Как добавить личный чат
+      </div>
+
+      <div
+        class="card-desc"
+        style="font-size:12px;line-height:1.6;">
+
+        Чаты нельзя добавить вручную по ID.
+
+        <br><br>
+
+        Подключи чат через:
+
+        <br>
+
+        Telegram →
+        Настройки →
+        Telegram Business →
+        Чат-боты →
+        JUDI.
+
+        <br><br>
+
+        После первого сообщения в разрешённом
+        чате он появится в этом списке.
+
+      </div>
+
+    </div>
+
+    <div class="card" style="margin:10px 14px;">
+      <div class="card-title" style="font-size:13px;">
+        <iconify-icon icon="tabler:send" width="16" height="16"></iconify-icon>
+        Быстрое сообщение
+      </div>
+      <div class="card-desc" style="font-size:12px;line-height:1.6;">
+        Отправить сообщение в выбранный чат через Telegram Business.
+      </div>
+      <button class="btn btn-primary btn-block" style="margin-top:8px;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="sendQuickMessage()">
+        <iconify-icon icon="tabler:send" width="16" height="16"></iconify-icon>
+        Отправить сообщение
+      </button>
+    </div>
+
+    <div class="card" style="margin:10px 14px;">
+
+      <div class="card-title" style="font-size:13px;">
+        🔗 Ссылка на бота
+      </div>
+
+      <div
+        class="card-desc"
+        style="font-size:12px;line-height:1.6;">
+
+        Ссылка для открытия бота:
+
+      </div>
+
+      <input
+        readonly
+        value="${esc(window._botLink || "")}"
+        onclick="this.select()"
+        style="
+          margin-top:8px;
+          font-size:12px;
+        ">
+
+      <button
+        class="btn btn-primary btn-block"
+        style="
+          margin-top:8px;
+          display:inline-flex;
+          align-items:center;
+          justify-content:center;
+          gap:6px;
+        "
+        onclick="copyBotLink()">
+
+        <iconify-icon
+          icon="tabler:copy"
+          width="16"
+          height="16">
+        </iconify-icon>
+
+        Скопировать
+
+      </button>
+
+    </div>
+  `;
+}
+
+function selectChat(id){ state.selectedChat = id; saveState(); toast("Чат выбран"); }
+
+function sendQuickMessage(){
+  const chatId = state.selectedChat;
+  if (!chatId) { toast("Сначала выбери чат"); return; }
+  if (!canSendData()) { toast("Открой JUDI reply-кнопкой 🎮 Открыть JUDI из бота"); return; }
+  const chat = state.chats.find(c => c.id === chatId);
+  openModal(`
+    <h2>Отправить сообщение</h2>
+    <div class="card-desc">Чат: ${esc(chat ? chat.name : chatId)}</div>
+    <textarea id="quickTextInput" rows="4" placeholder="Введите текст сообщения" style="margin-top:10px;width:100%;"></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="confirmQuickMessage()">Отправить</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Отмена</button>
+    </div>
+  `);
+  setTimeout(() => { const el = document.getElementById("quickTextInput"); if (el) el.focus(); }, 50);
+}
+
+function confirmQuickMessage(){
+  const chatId = state.selectedChat;
+  if (!chatId) { toast("Сначала выбери чат"); return; }
+  const text = (document.getElementById("quickTextInput")?.value || "").trim();
+  if (!text) { toast("Введите текст"); return; }
+  if (!canSendData()) { toast("Открой JUDI reply-кнопкой из бота"); return; }
+  const chat = state.chats.find(c => c.id === chatId);
+  const payload = {
+    action: "send_message",
+    chatId: chatId,
+    chatName: chat ? chat.name : chatId,
+    text: text
+  };
+  console.log("SEND DATA:", payload);
+  try {
+    tg.sendData(JSON.stringify(payload));
+    closeModal();
+    toast("Отправляю сообщение...");
+  } catch(e) {
+    console.error("sendData error:", e);
+    toast("Ошибка отправки в бота. Смотри консоль.");
+    return;
+  }
+  setTimeout(() => { try { tg.close(); } catch(e){} }, 600);
+}
+function refreshChats(){
+  if (!canSendData()){
+    toast("Открой JUDI reply-кнопкой 🎮 Открыть JUDI из бота");
+    return;
+  }
+  console.log("SEND DATA:", { action: "refresh_chats" });
+  tg.sendData(JSON.stringify({
+    action: "refresh_chats"
+  }));
+  toast("Обновляю список чатов...");
+  setTimeout(() => {
+    try {
+      tg.close();
+    } catch(e) {}
+  }, 500);
+}
+function deleteChat(id){
+  if (confirm("Удалить чат из списка?")){ state.chats = state.chats.filter(c=>c.id!==id); saveState(); render(); toast("Удалено"); }
+}
+
+// ---------- Settings ----------
+function renderSettings(){
+  const items = [
+    ["spam","📢","Спам и шаблоны","Создать, изменить и удалить шаблоны"],
+    ["mute","🔇","Мут","Выбрать чаты и текст уведомления"],
+    ["afk","🌙","AFK","Шаблоны и автоматические ответы"],
+    ["streak","🔥","Сирийчик","Приглашения и настройки серии"],
+    ["font","🔤","Шрифт","Форматирование сообщений"],
+    ["buttons","🔘","Сообщения с кнопками","Конструктор шаблонов · Premium"],
+    ["games","🎮","Игры","Настройки игры «Угадай слово»"],
+    ["history","🕵️","История сообщений","Доступные события удаления и изменения"],
+  ];
+  return `
+    <div class="section-header">Настройки JUDI</div>
+    <div class="card"><div class="card-title">⚙️ Управление функциями</div><div class="card-desc">Выбери функцию, чтобы настроить её и управлять шаблонами.</div></div>
+    <div class="grid">${items.map(([key,emoji,name,desc])=>`<div class="tile" onclick="openSection('${key}')"><div class="emoji">${emoji}</div><div style="flex:1"><div class="name">${name}</div><div class="desc">${desc}</div></div><iconify-icon icon="tabler:chevron-right"></iconify-icon></div>`).join("")}</div>
+    <div class="card"><div class="card-title"><iconify-icon icon="tabler:crown" width="18" height="18"></iconify-icon> Premium</div><div class="card-desc">Открывает сообщения с кнопками и дополнительные возможности. Реклама отключается.</div><div style="margin-top:10px;"><button class="btn btn-primary btn-block" onclick="openPremium()">Купить за <s style="opacity:.65;margin-right:2px;">250</s> 99 ⭐</button></div></div>
+    <div class="card"><div class="card-title">☁️ Синхронизация</div><div class="card-desc">Отправить сохранённые шаблоны и настройки в базу JUDI. Telegram закроет Mini App после отправки данных.</div><button class="btn btn-primary btn-block" style="margin-top:10px;" onclick="syncSettingsToBot()">Синхронизировать с ботом</button></div>
+    <div class="card"><div class="card-title">🧹 Данные</div><div class="card-desc">Очистить локальные настройки этого устройства. Серверные данные и чаты не удаляются.</div><div style="margin-top:10px;"><button class="btn btn-ghost btn-block" onclick="resetAll()">Сбросить данные устройства</button></div></div>
+    ${bottomBack()}
+  `;
+}
+
+function resetAll(){ if(confirm("Сбросить все данные?")){ localStorage.removeItem(STORAGE_KEY); state = { ...defaultState }; saveState(); render(); toast("Сброшено"); } }
+
+// ---------- Sections ----------
+function renderSection(key){
+  if (key === "chats") return renderChats() + bottomBack();
+  if (key === "commands") return renderCommands();
+  if (key === "history") return renderHistory();
+  if (key === "games") return renderGames();
+  if (key === "streak") return renderStreak();
+  if (key === "spam") return renderSpam();
+  if (key === "buttons") return renderButtons();
+  if (key === "afk") return renderAfk();
+  if (key === "font") return renderFont();
+  if (key === "mute") return renderMute();
+  return `<div class="empty">Раздел в разработке</div>` + bottomBack();
+}
+function renderCommands(){
+  const rows = [
+    ["🔇",".мут","Включить мут в текущем подключённом личном чате."],
+    ["🔊",".мут оф","Выключить мут."],
+    ["🌙",".афк","Включить AFK с сохранённым шаблоном."],
+    ["🌙",".афк Текст","Включить AFK с указанным текстом ответа."],
+    ["☀️",".афк оф","Выключить AFK."],
+    ["🔥",".серия","Показать статистику сирийчика в этом чате."],
+    ["🕯️",".серия оф","Остановить сирийчик."],
+    ["📢",".спам","Открыть инструкцию по шаблонам и отправке из приложения."],
+    ["🔤",".шрифт","Открыть настройки форматирования в приложении."],
+    ["🔘",".кнопки","Открыть конструктор кнопок (Premium)."],
+    ["🎮",".игра","Открыть игры в приложении."],
+    ["🕵️",".история","Показать возможности истории доступных Telegram событий."],
+    ["⭐",".избранное","Открыть избранные чаты в приложении."],
+    ["📊",".статистика","Показать состояние текущего чата."],
+    ["❓",".помощь","Показать список команд."],
+  ];
+  return `<div class="section-header">⚡ Команды JUDI</div><div class="card-desc" style="padding:0 16px 10px;">Команды отправляются в нужный личный чат, подключённый через Telegram Business.</div><div style="padding:0 14px;">${rows.map(([e,c,d])=>`<div class="tpl-card"><div class="tpl-emoji">${e}</div><div class="tpl-body"><div class="tpl-name">${c}</div><div class="tpl-text">${d}</div></div><button class="btn btn-ghost btn-sm" onclick="copyCommand('${c}')">Копировать</button></div>`).join("")}</div>${bottomBack()}`;
+}
+function copyCommand(cmd){ if(navigator.clipboard?.writeText) navigator.clipboard.writeText(cmd).then(()=>toast("Команда скопирована")).catch(()=>toast(cmd)); else toast(cmd); }
+function renderHistory(){
+ return `<div class="section-header">🕵️ История сообщений</div><div class="card"><div class="card-title">🗑️ Удалённые сообщения</div><div class="card-desc">Telegram может передать событие удаления и ID сообщения, но не сообщает боту, кто именно нажал «Удалить». Текст можно показать только если он был сохранён заранее.</div></div><div class="card"><div class="card-title">✏️ Изменённые сообщения</div><div class="card-desc">Сравнение старого и нового текста возможно только если обе версии доступны боту. Telegram Business не гарантирует передачу всех таких событий.</div></div><div class="card"><div class="card-title">📷 Фото и видео</div><div class="card-desc">Показываются только медиа, которые бот получил при разрешённом доступе. Скрытые или ранее недоступные медиа восстановить нельзя.</div></div>${bottomBack()}`;
+}
+function renderProfile(){
+ const user = u || {};
+ const uname = user.username ? "@"+user.username : (user.first_name || "Пользователь JUDI");
+ const uid = user.id || "—";
+ const ref = window._botLink && uid !== "—" ? `${window._botLink}?start=ref_${uid}` : "Открой приложение через бота, чтобы получить ссылку";
+ return `<div class="section-header">👤 Профиль</div><div class="card"><div class="card-title">${esc(uname)}</div><div class="card-desc">ID: ${uid}</div><div class="tpl-meta" style="margin-top:10px;">${state.premium?"👑 Premium активен":"Обычный аккаунт"}</div></div><div class="card"><div class="card-title">👑 Premium</div><div class="card-desc">Сообщения с кнопками, дополнительные возможности и отключение рекламы.</div><button class="btn btn-primary btn-block" style="margin-top:10px;" onclick="openPremium()">Купить Premium</button></div><div class="card"><div class="card-title">🎁 Пригласить друга</div><div class="card-desc">За каждого нового пользователя, который впервые запустит JUDI по твоей ссылке, тебе начисляется 2 дня Premium.</div><div class="preview-box" id="refLinkText">${esc(ref)}</div><button class="btn btn-primary btn-block" style="margin-top:10px;" onclick="copyReferral()">Скопировать реферальную ссылку</button><button class="btn btn-ghost btn-block" style="margin-top:8px;" onclick="shareReferral()">Поделиться ссылкой</button></div>${bottomBack()}`;
+}
+function copyReferral(){ const el=document.getElementById("refLinkText"); const val=el?.textContent||""; if(navigator.clipboard?.writeText) navigator.clipboard.writeText(val).then(()=>toast("Ссылка скопирована")).catch(()=>toast("Не удалось скопировать")); else toast(val); }
+function shareReferral(){ const el=document.getElementById("refLinkText"); const val=el?.textContent||""; if(tg?.openTelegramLink) tg.openTelegramLink("https://t.me/share/url?url="+encodeURIComponent(val)+"&text="+encodeURIComponent("Присоединяйся к JUDI!")); else copyReferral(); }
+
+function bottomBack(){ return `<div style="padding:14px;"><button class="btn btn-ghost btn-block" onclick="backHome()" style="display:inline-flex;align-items:center;gap:8px;"><iconify-icon icon="tabler:arrow-left" width="16" height="16"></iconify-icon> Назад</button></div>`; }
+
+// ---------- Games ----------
+function renderGames(){
+  const chats = state.chats;
+  return `
+    <div class="section-header">Игры</div>
+    <div class="card">
+      <div class="card-title">🎮 Угадай слово</div>
+      <div class="card-desc">Настрой игру перед запуском.</div>
+      <div class="field" style="margin-top:10px;"><label>Чат</label>
+        <select id="gameChat">${chats.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("")}</select>
+      </div>
+      <div class="field"><label>Количество попыток (1–20)</label><input id="gameAttempts" type="number" min="1" max="20" value="6"></div>
+      <div class="field"><label>Своё слово (оставь пустым для случайного)</label><input id="gameWord" maxlength="20" placeholder="Например, TELEGRAM"></div>
+      <button class="btn btn-primary btn-block" onclick="startGame()">Запустить в чате</button>
+      <div class="preview-box" id="gameResult" style="margin-top:10px;">Буквы: 🟩 правильное место, 🟨 есть в слове, но не на месте, ⬛ нет в слове.</div>
+    </div>
+    ${bottomBack()}
+  `;
+}
+function startGame(){
+  const sel = document.getElementById("gameChat");
+  if (!sel || !sel.value){ toast("Сначала подключи чат"); return; }
+  const id = +sel.value;
+  const chat = state.chats.find(c=>c.id===id);
+  const attempts = Math.max(1, Math.min(20, Number(document.getElementById("gameAttempts").value || 6)));
+  const word = document.getElementById("gameWord").value.trim().toUpperCase();
+  if (word && (!/^[А-ЯЁA-Z]+$/.test(word) || word.length < 3 || word.length > 20)){ toast("Слово: от 3 до 20 букв"); return; }
+  if (tg && tg.sendData){
+    tg.sendData(JSON.stringify({action:"start_game",chatId:id,chatName:chat.name,attempts,word}));
+    document.getElementById("gameResult").textContent = "Запрос на запуск отправлен боту.";
+    setTimeout(()=>{try{tg.close()}catch(e){}},500);
+  } else toast("Открой JUDI через Telegram");
+}
+
+// ---------- Streak ----------
+function renderStreak(){
+  const chats = state.chats.filter(c=>c.type === "private" || c.id > 0);
+  return `
+    <div class="section-header">🔥 Сирийчик</div>
+    <div class="card">
+      <div class="card-title">Предложить растить сирийчика</div>
+      <div class="card-desc">Выбери личный чат. Контакт получит приглашение с кнопками «Принять» и «Отклонить». После принятия JUDI закрепит статистику в переписке.</div>
+      <div class="field" style="margin-top:14px;"><label>Контакт</label>
+        <select id="streakChat">${chats.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("")}</select>
+      </div>
+      <button class="btn btn-primary btn-block" onclick="inviteStreak()">🔥 Предложить сирийчик</button>
+    </div>
+    <div class="card">
+      <div class="card-title">Как считается серия</div>
+      <div class="card-desc">Каждый день ты и контакт должны отправить друг другу хотя бы по одному сообщению. Когда оба написали — серия увеличивается на день. Сообщения самого бота не учитываются.</div>
+    </div>
+    ${bottomBack()}
+  `;
+}
+function inviteStreak(){
+  const sel=document.getElementById("streakChat");
+  if(!sel || !sel.value){toast("Сначала подключи личный чат");return;}
+  const id=Number(sel.value); const chat=state.chats.find(c=>c.id===id);
+  if(tg && tg.sendData){
+    tg.sendData(JSON.stringify({action:"invite_streak",chatId:id,chatName:chat?.name||"Контакт"}));
+    toast("Приглашение отправлено боту");
+    setTimeout(()=>{try{tg.close()}catch(e){}},500);
+  } else toast("Открой JUDI через Telegram");
+}
+
+// ---------- Spam templates ----------
+function renderSpam(){
+  const list = state.spamTemplates;
+  return `
+    <div class="section-header">Спам — шаблоны</div>
+    <div style="padding:0 14px 10px;">
+      <button class="btn btn-primary btn-block" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;" onclick="openSpamEditor()"><iconify-icon icon="tabler:plus" width="16" height="16"></iconify-icon> Новый шаблон</button>
+    </div>
+    <div style="padding:0 14px;">
+      ${list.length ? list.map(t=>`
+        <div class="tpl-card">
+          <div class="tpl-emoji">${esc(t.emoji||"📢")}</div>
+          <div class="tpl-body">
+            <div class="tpl-name">${esc(t.name)}</div>
+            <div class="tpl-text">${esc(t.text)}</div>
+            <div class="tpl-meta">Повторений: ${t.repeat} · лимит 20</div>
+            <div class="preview-box">${esc(t.text).repeat ? esc(t.text) : ""}</div>
+          </div>
+          <div class="tpl-actions">
+            <button class="btn btn-primary" style="padding:8px 14px;font-size:13px;display:inline-flex;align-items:center;gap:6px;" onclick="sendSpam(${t.id})"><iconify-icon icon="tabler:send" width="16" height="16"></iconify-icon> Отправить</button>
+            <button class="btn btn-ghost btn-sm" onclick="openSpamEditor(${t.id})" style="display:inline-flex;align-items:center;"><iconify-icon icon="tabler:pencil" width="14" height="14"></iconify-icon></button>
+            <button class="btn btn-danger btn-sm" onclick="deleteSpam(${t.id})" style="display:inline-flex;align-items:center;"><iconify-icon icon="tabler:trash" width="14" height="14"></iconify-icon></button>
+          </div>
+        </div>
+      `).join("") : '<div class="empty">Нет шаблонов. Создай первый!</div>'}
+    </div>
+    ${bottomBack()}
+  `;
+}
+function openSpamEditor(id){
+  const t = id ? state.spamTemplates.find(x=>x.id===id) : null;
+  openModal(`
+    <h2>${t?"Редактировать":"Новый"} шаблон</h2>
+    <div class="field"><label>Эмодзи</label><input id="se_emoji" value="${esc(t?.emoji||"📢")}" maxlength="4"></div>
+    <div class="field"><label>Название</label><input id="se_name" value="${esc(t?.name||"")}"></div>
+    <div class="field"><label>Текст</label><textarea id="se_text">${esc(t?.text||"")}</textarea></div>
+    <div class="field"><label>Повторений (1–20)</label><input id="se_repeat" type="number" min="1" max="20" value="${t?.repeat||1}"></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveSpam(${id||0})">Сохранить</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Отмена</button>
+    </div>
+  `);
+}
+function saveSpam(id){
+  const emoji = document.getElementById("se_emoji").value.trim() || "📢";
+  const name = document.getElementById("se_name").value.trim() || "Без названия";
+  const text = document.getElementById("se_text").value.trim();
+  let repeat = +document.getElementById("se_repeat").value;
+  if (!text){ toast("Введите текст"); return; }
+  repeat = Math.min(20, Math.max(1, repeat||1));
+  if (id){
+    const t = state.spamTemplates.find(x=>x.id===id);
+    Object.assign(t, {emoji,name,text,repeat});
+  } else {
+    state.spamTemplates.push({ id: uid(), emoji, name, text, repeat });
+  }
+  saveState(); closeModal(); render(); toast("Сохранено на этом устройстве");
+}
+function deleteSpam(id){ if(confirm("Удалить шаблон?")){ state.spamTemplates = state.spamTemplates.filter(x=>x.id!==id); saveState(); render(); toast("Удалено"); } }
+function sendSpam(id){
+  const t = state.spamTemplates.find(x=>x.id===id);
+  const chats = state.chats;
+  if (!chats.length){ toast("Сначала добавь чат в разделе «Чаты»"); return; }
+  openModal(`
+    <h2>📤 Отправить «${esc(t.name)}»</h2>
+    <div class="card-desc" style="margin-bottom:10px;">Повторений: ${t.repeat} · лимит 20</div>
+    <div class="field">
+      <label>Выбери получателя</label>
+      <select id="sendRecipient">
+        ${chats.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("")}
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="confirmSendSpam(${id})">Отправить</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Отмена</button>
+    </div>
+  `);
+}
+function confirmSendSpam(id){
+  const t = state.spamTemplates.find(x=>x.id===id);
+  const sel = document.getElementById("sendRecipient");
+  if (!sel){ toast("Нет получателя"); return; }
+  const chatId = +sel.value;
+  const chat = state.chats.find(c=>c.id===chatId);
+  if (!chat){ toast("Чат не найден"); return; }
+  closeModal();
+  const payload = { action: "send_spam", chatId: chatId, chatName: chat.name, text: t.text, repeat: t.repeat };
+  if (tg && tg.sendData) {
+    tg.sendData(JSON.stringify(payload));
+    toast("Отправлено боту. Смотри чат с ботом.");
+    setTimeout(() => { try { tg.close(); } catch(e){} }, 800);
+  } else {
+    toast(`«${t.name}» → «${chat.name}» ×${t.repeat} (нужен бот)`);
+  }
+}
+
+// ---------- Button messages (Premium) ----------
+function renderButtons(){
+  if (!state.premium){
+    return `
+      <div class="section-header">Сообщения с кнопками <iconify-icon icon="tabler:crown" width="14" height="14" style="vertical-align:middle;"></iconify-icon></div>
+      <div class="card">
+        <div class="card-title">Premium функция</div>
+        <div class="card-desc">Доступно только пользователям Premium.</div>
+        <div style="margin-top:10px;"><button class="btn btn-primary btn-block" onclick="openPremium()">Купить Premium за 99 <img src="icons/star.png" style="width:14px;height:14px;vertical-align:middle;" alt=""></button></div>
+      </div>
+      ${bottomBack()}
+    `;
+  }
+  const list = state.buttonTemplates;
+  return `
+    <div class="section-header">Сообщения с кнопками <iconify-icon icon="tabler:crown" width="14" height="14" style="vertical-align:middle;"></iconify-icon></div>
+    <div style="padding:0 14px 10px;">
+      <button class="btn btn-primary btn-block" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;" onclick="openBtnEditor()"><iconify-icon icon="tabler:plus" width="16" height="16"></iconify-icon> Новый шаблон</button>
+    </div>
+    <div style="padding:0 14px;">
+      ${list.length ? list.map(t=>`
+        <div class="tpl-card">
+          <div class="tpl-emoji">🔘</div>
+          <div class="tpl-body">
+            <div class="tpl-name">${esc(t.name)}</div>
+            <div class="tpl-text">${esc(t.text)}</div>
+            <div class="tpl-meta">Кнопок: ${t.buttons.length}</div>
+            <div class="preview-box">${esc(t.text)}\n${t.buttons.map(b=>`[${b.text}]`).join(" ")}</div>
+          </div>
+          <div class="tpl-actions">
+            <button class="btn btn-primary btn-sm" style="display:inline-flex;align-items:center;gap:4px;" onclick="sendButtons(${t.id})"><iconify-icon icon="tabler:send" width="14" height="14"></iconify-icon></button>
+            <button class="btn btn-ghost btn-sm" onclick="openBtnEditor(${t.id})"><iconify-icon icon="tabler:pencil" width="14" height="14"></iconify-icon></button>
+            <button class="btn btn-danger btn-sm" onclick="deleteBtn(${t.id})"><iconify-icon icon="tabler:trash" width="14" height="14"></iconify-icon></button>
+          </div>
+        </div>
+      `).join("") : '<div class="empty">Нет шаблонов.</div>'}
+    </div>
+    ${bottomBack()}
+  `;
+}
+let btnDraft = null;
+function openBtnEditor(id){
+  const t = id ? state.buttonTemplates.find(x=>x.id===id) : null;
+  btnDraft = t ? JSON.parse(JSON.stringify(t)) : { id: uid(), name:"", text:"", buttons:[] };
+  renderBtnEditor();
+}
+function renderBtnEditor(){
+  const d = btnDraft;
+  const colors = ["orange","gray","green"];
+  const colorMap = { orange:"var(--accent)", gray:"var(--gray)", green:"var(--green)" };
+  openModal(`
+    <h2>${d.id && state.buttonTemplates.find(x=>x.id===d.id)?"Редактировать":"Новый"} шаблон</h2>
+    <div class="field"><label>Название</label><input id="be_name" value="${esc(d.name)}"></div>
+    <div class="field"><label>Текст сообщения</label><textarea id="be_text">${esc(d.text)}</textarea></div>
+    <div class="section-header" style="padding:6px 0;">Кнопки (${d.buttons.length}/4)</div>
+    <div id="be_buttons"></div>
+    <button class="btn btn-ghost btn-sm" onclick="addBtn()" ${d.buttons.length>=4?"disabled":""}>+ Добавить кнопку</button>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveBtn()">Сохранить</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Отмена</button>
+    </div>
+  `);
+  renderBtnList();
+}
+function renderBtnList(){
+  const d = btnDraft;
+  const colors = ["orange","gray","green"];
+  const colorMap = { orange:"var(--accent)", gray:"var(--gray)", green:"var(--green)" };
+  const container = document.getElementById("be_buttons");
+  if (!container) return;
+  container.innerHTML = d.buttons.map((b,i)=>`
+    <div class="card" style="margin:8px 0;">
+      <div class="field"><label>Текст кнопки</label><input value="${esc(b.text)}" onchange="btnDraft.buttons[${i}].text=this.value"></div>
+      <div class="field"><label>Действие</label>
+        <select onchange="btnDraft.buttons[${i}].action=this.value; renderBtnList();">
+          <option value="link" ${b.action==="link"?"selected":""}>Ссылка</option>
+          <option value="message" ${b.action==="message"?"selected":""}>Другое сообщение</option>
+          <option value="edit" ${b.action==="edit"?"selected":""}>Сменить текст</option>
+          <option value="notify" ${b.action==="notify"?"selected":""}>Уведомление</option>
+        </select>
+      </div>
+      ${b.action==="link"?`<div class="field"><label>URL</label><input value="${esc(b.url||"")}" onchange="btnDraft.buttons[${i}].url=this.value"></div>`:""}
+      ${b.action==="notify"?`<div class="field"><label>Текст уведомления</label><input value="${esc(b.notifyText||b.text||"")}" onchange="btnDraft.buttons[${i}].notifyText=this.value"></div>`:""}
+      ${b.action==="message"||b.action==="edit"?`<div class="field"><label>Следующее сообщение / новый текст</label><textarea onchange="btnDraft.buttons[${i}].nextText=this.value">${esc(b.nextText||"")}</textarea></div>`:""}
+    </div>
+      <button class="btn btn-danger btn-sm" onclick="removeBtn(${i})">Удалить</button>
+    </div>
+  `).join("");
+}
+function addBtn(){ if(btnDraft.buttons.length<4){ btnDraft.buttons.push({ text:"", action:"link", url:"", notifyText:"", nextText:"" }); renderBtnEditor(); } }
+function removeBtn(i){ btnDraft.buttons.splice(i,1); renderBtnEditor(); }
+function saveBtn(){
+  btnDraft.name = document.getElementById("be_name").value.trim() || "Без названия";
+  btnDraft.text = document.getElementById("be_text").value.trim();
+  if (!btnDraft.text){ toast("Введите текст"); return; }
+  const idx = state.buttonTemplates.findIndex(x=>x.id===btnDraft.id);
+  if (idx>=0) state.buttonTemplates[idx] = btnDraft; else state.buttonTemplates.push(btnDraft);
+  saveState(); closeModal(); render(); toast("Сохранено на этом устройстве");
+}
+function deleteBtn(id){ if(confirm("Удалить?")){ state.buttonTemplates = state.buttonTemplates.filter(x=>x.id!==id); saveState(); render(); } }
+function sendButtons(id){
+  const t = state.buttonTemplates.find(x=>x.id===id);
+  if (!state.chats.length){ toast("Сначала добавь чат в разделе «Чаты»"); return; }
+  openModal(`
+    <h2>📤 Отправить «${esc(t.name)}»</h2>
+    <div class="field">
+      <label>Получатель</label>
+      <select id="btnRecipient">
+        ${state.chats.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("")}
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="confirmSendButtons(${id})">Отправить</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Отмена</button>
+    </div>
+  `);
+}
+function confirmSendButtons(id){
+  const t = state.buttonTemplates.find(x=>x.id===id);
+  const sel = document.getElementById("btnRecipient");
+  if (!sel){ toast("Нет получателя"); return; }
+  const chatId = +sel.value;
+  const chat = state.chats.find(c=>c.id===chatId);
+  if (!chat){ toast("Чат не найден"); return; }
+  closeModal();
+  if (tg && tg.sendData) {
+    tg.sendData(JSON.stringify({ action: "send_buttons", chatId: chatId, chatName: chat.name, text: t.text, buttons: t.buttons }));
+    toast("Отправлено боту.");
+    setTimeout(() => { try { tg.close(); } catch(e){} }, 800);
+  } else {
+    toast(`«${t.name}» → «${chat.name}» (нужен бот)`);
+  }
+}
+
+// ---------- AFK ----------
+function renderAfk(){
+  const list = state.afkTemplates;
+  const anyActive = list.some(t=>t.active);
+  return `
+    <div class="section-header">АФК — шаблоны статуса</div>
+    <div style="padding:0 14px 10px;">
+      <div class="card" style="text-align:center;">
+        <img src="icons/afk.png" style="width:120px;height:120px;object-fit:contain;margin:0 auto;display:block;" alt="АФК">
+        <div class="card-desc" style="margin-top:6px;">${anyActive ? "АФК включён 🟢" : "АФК выключен"}</div>
+        ${anyActive ? `<div style="margin-top:10px;"><button class="btn btn-danger btn-block" onclick="turnOffAfk()">Выключить АФК</button></div>` : ""}
+      </div>
+    </div>
+    <div style="padding:0 14px 10px;">
+      <button class="btn btn-primary btn-block" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;" onclick="openAfkEditor()"><iconify-icon icon="tabler:plus" width="16" height="16"></iconify-icon> Новый шаблон</button>
+    </div>
+    <div style="padding:0 14px;">
+      ${list.length ? list.map(t=>`
+        <div class="tpl-card" style="${t.active?'border-color:var(--green);box-shadow:0 0 12px rgba(74,222,128,.35);':''}">
+          <div class="tpl-emoji">${esc(t.emoji||"🌙")}</div>
+          <div class="tpl-body">
+            <div class="tpl-name">${esc(t.name)} ${t.active?'<span style="color:var(--green);font-size:11px;">● активен</span>':''}</div>
+            <div class="tpl-text">${esc(t.text)}</div>
+            <div class="tpl-meta">Онлайн: ${t.online?"вкл":"выкл"} · Офлайн: ${t.offline?"вкл":"выкл"} · ${t.once?"1 раз":"повторно"} · КД: ${Number(t.cooldown||0)} мин</div>
+          </div>
+          <div class="tpl-actions">
+            <button class="btn ${t.active?'btn-danger':'btn-ghost'} btn-sm" onclick="toggleAfk(${t.id})">${t.active?'Выкл':'Вкл'}</button>
+            <button class="btn btn-ghost btn-sm" onclick="openAfkEditor(${t.id})"><iconify-icon icon="tabler:pencil" width="14" height="14"></iconify-icon></button>
+            <button class="btn btn-danger btn-sm" onclick="deleteAfk(${t.id})"><iconify-icon icon="tabler:trash" width="14" height="14"></iconify-icon></button>
+          </div>
+        </div>
+      `).join("") : '<div class="empty">Нет шаблонов.</div>'}
+    </div>
+    ${bottomBack()}
+  `;
+}
+function openAfkEditor(id){
+  const t = id ? state.afkTemplates.find(x=>x.id===id) : null;
+  openModal(`
+    <h2>${t?"Редактировать":"Новый"} АФК-шаблон</h2>
+    <div class="field"><label>Эмодзи</label><input id="ae_emoji" value="${esc(t?.emoji||"🌙")}" maxlength="4"></div>
+    <div class="field"><label>Название</label><input id="ae_name" value="${esc(t?.name||"")}"></div>
+    <div class="field"><label>Текст</label><textarea id="ae_text">${esc(t?.text||"")}</textarea></div>
+    <div class="field"><label>При статусе онлайн</label>
+      <div class="switch ${t?.online?'on':''}" id="ae_online" onclick="this.classList.toggle('on')"></div>
+    </div>
+    <div class="field"><label>При статусе офлайн</label>
+      <div class="switch ${t?.offline?'on':''}" id="ae_offline" onclick="this.classList.toggle('on')"></div>
+    </div>
+    <div class="field"><label>Отправлять этому человеку только один раз</label>
+      <div class="switch ${t?.once?'on':''}" id="ae_once" onclick="this.classList.toggle('on')"></div>
+    </div>
+    <div class="field"><label>КД между ответами (минуты, 0 = без КД)</label>
+      <input id="ae_cooldown" type="number" min="0" value="${t?.cooldown||0}">
+    </div>
+    <div class="field">
+      <label>Кнопки (до 8)</label>
+      <div id="ae_buttons"></div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="addAfkButton()">+ Добавить кнопку</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveAfk(${id||0})">Сохранить</button>
+      <button class="btn btn-ghost" onclick="closeModal()">← Назад</button>
+    </div>
+  `);
+  setTimeout(() => { window._afkBtnDraft = (t && Array.isArray(t.buttons)) ? t.buttons.map(b=>({...b})) : []; renderAfkButtons(); }, 0);
+}
+function renderAfkButtons(){
+  const root = document.getElementById("ae_buttons");
+  if (!root) return;
+  const list = window._afkBtnDraft || [];
+  root.innerHTML = list.map((b,i)=>`
+    <div class="card" style="margin:8px 0;padding:10px;">
+      <div class="field"><label>Текст кнопки</label><input id="ab_text_${i}" value="${esc(b.text||"")}"></div>
+      <div class="field"><label>Действие</label>
+        <select id="ab_action_${i}">
+          <option value="link" ${(b.action|| (b.url?"link":"tap"))==="link"?"selected":""}>Ссылка</option>
+          <option value="message" ${(b.action||"tap")==="message"?"selected":""}>Другое сообщение</option>
+          <option value="edit" ${(b.action||"tap")==="edit"?"selected":""}>Сменить текст</option>
+          <option value="notify" ${(b.action||"tap")==="notify"?"selected":""}>Уведомление</option>
+          <option value="tap" ${(b.action||"tap")==="tap"?"selected":""}>Уведомление + следующее</option>
+        </select>
+      </div>
+      <div class="field"><label>Ссылка (если действие «Ссылка»)</label><input id="ab_url_${i}" value="${esc(b.url||"")}"></div>
+      <div class="field"><label>Уведомление при нажатии</label><input id="ab_alert_${i}" value="${esc(b.alert||"")}"></div>
+      <div class="field"><label>Следующее сообщение / новый текст</label><textarea id="ab_next_${i}">${esc(b.next||"")}</textarea></div>
+      <button class="btn btn-danger btn-sm" onclick="removeAfkButton(${i})">Удалить</button>
+    </div>
+  `).join("");
+}
+function addAfkButton(){
+  if (!window._afkBtnDraft) window._afkBtnDraft = [];
+  if (window._afkBtnDraft.length >= 8) { toast("Максимум 8 кнопок"); return; }
+  window._afkBtnDraft.push({ text:"", action:"tap", url:"", alert:"", next:"" });
+  renderAfkButtons();
+}
+function removeAfkButton(i){
+  if (!window._afkBtnDraft) return;
+  window._afkBtnDraft.splice(i,1);
+  renderAfkButtons();
+}
+function collectAfkButtons(){
+  const list = window._afkBtnDraft || [];
+  const out = [];
+  for (let i=0;i<list.length;i++){
+    const text = (document.getElementById("ab_text_"+i)?.value || "").trim();
+    if (!text) continue;
+    out.push({
+      text,
+      action: (document.getElementById("ab_action_"+i)?.value || "tap").trim(),
+      url: (document.getElementById("ab_url_"+i)?.value || "").trim(),
+      alert: (document.getElementById("ab_alert_"+i)?.value || "").trim(),
+      next: (document.getElementById("ab_next_"+i)?.value || "").trim()
+    });
+  }
+  return out;
+}
+
+function saveAfk(id){
+  const emoji = document.getElementById("ae_emoji").value.trim() || "🌙";
+  const name = document.getElementById("ae_name").value.trim() || "Без названия";
+  const text = document.getElementById("ae_text").value.trim();
+  const online = document.getElementById("ae_online").classList.contains("on");
+  const offline = document.getElementById("ae_offline").classList.contains("on");
+  const once = document.getElementById("ae_once").classList.contains("on");
+  const cooldown = Math.max(0, Number(document.getElementById("ae_cooldown").value || 0));
+  const buttons = collectAfkButtons();
+  if (!text){ toast("Введите текст"); return; }
+
+  if (id){
+    const t = state.afkTemplates.find(x=>x.id===id);
+    Object.assign(t, {emoji,name,text,online,offline,once,cooldown,buttons});
+  } else {
+    state.afkTemplates.push({
+      id: uid(), emoji, name, text, online, offline,
+      active: false, once, cooldown, activation_id: "", buttons
+    });
+  }
+  saveState(); closeModal(); render(); toast("Настройки АФК сохранены");
+}
+function deleteAfk(id){ if(confirm("Удалить?")){ state.afkTemplates = state.afkTemplates.filter(x=>x.id!==id); saveState(); render(); } }
+function toggleAfk(id){
+  const t = state.afkTemplates.find(x=>x.id===id);
+  if (!t) return;
+  const newActive = !t.active;
+
+  state.afkTemplates.forEach(x=> x.active = false);
+  if (newActive) {
+    t.active = true;
+    // Новый activation_id сбрасывает режим «только один раз» при повторном включении.
+    t.activation_id = String(Date.now()) + "_" + Math.floor(Math.random()*1000);
+  }
+
+  saveState(); render(); toast(newActive ? "АФК включён" : "АФК выключен");
+
+  if (tg && tg.sendData) {
+    const activeTpl = state.afkTemplates.find(x=>x.active);
+    tg.sendData(JSON.stringify({
+      action: "afk_toggle",
+      active: newActive,
+      template: activeTpl ? {
+        id: activeTpl.id,
+        name: activeTpl.name,
+        text: activeTpl.text,
+        online: activeTpl.online,
+        offline: activeTpl.offline,
+        once: !!activeTpl.once,
+        cooldown: Number(activeTpl.cooldown || 0),
+        activation_id: activeTpl.activation_id,
+        buttons: activeTpl.buttons || []
+      } : null
+    }));
+  }
+}
+function turnOffAfk(){
+  state.afkTemplates.forEach(x=> x.active = false);
+  saveState(); render(); toast("АФК выключен");
+  if (tg && tg.sendData) {
+    tg.sendData(JSON.stringify({ action: "afk_toggle", active: false, template: null }));
+  }
+}
+
+// ---------- Font ----------
+function renderFont(){
+  const f = state.fontSettings;
+  const chats = state.chats;
+  return `
+    <div class="section-header">Шрифт</div>
+    <div class="card">
+      <div class="card-title">Применить к</div>
+      <div class="row" style="margin-bottom:10px;">
+        <span class="chip ${f.all?'active':''}" onclick="toggleFontAll()">ALL</span>
+      </div>
+      ${!f.all ? `<div style="margin-bottom:10px;">${chats.map(c=>`<span class="chip ${f.chats.includes(c.id)?'active':''}" onclick="toggleFontChat(${c.id})">${esc(c.name)}</span>`).join("")}</div>` : ""}
+      <div class="card-title" style="margin-top:6px;">Форматирование</div>
+      ${checkbox("mono","Моноширинный", f.mono)}
+      ${checkbox("italic","Курсив", f.italic)}
+      ${checkbox("bold","Жирный", f.bold)}
+      ${checkbox("quote","Цитирование", f.quote)}
+      ${checkbox("underline","Подчёркивание", f.underline)}
+      ${checkbox("typing","Анимация «печатает…»", f.typing)}
+      <div class="field" style="margin-top:10px;"><label>Добавить ссылку</label><input id="fontLink" value="${esc(f.link)}" placeholder="https://..."></div>
+      <button class="btn btn-primary btn-block" onclick="saveFont()">Сохранить</button>
+    </div>
+    ${bottomBack()}
+  `;
+}
+function checkbox(key,label,val){ return `<div class="row" style="margin:6px 0;"><div class="switch ${val?'on':''}" id="font_${key}" onclick="this.classList.toggle('on')"></div><span style="font-size:14px;">${label}</span></div>`; }
+function toggleFontAll(){ state.fontSettings.all = !state.fontSettings.all; if(state.fontSettings.all) state.fontSettings.chats=[]; saveState(); render(); }
+function toggleFontChat(id){ const i = state.fontSettings.chats.indexOf(id); if(i>=0) state.fontSettings.chats.splice(i,1); else state.fontSettings.chats.push(id); saveState(); render(); }
+function saveFont(){
+  const f = state.fontSettings;
+  f.mono = document.getElementById("font_mono").classList.contains("on");
+  f.italic = document.getElementById("font_italic").classList.contains("on");
+  f.bold = document.getElementById("font_bold").classList.contains("on");
+  f.quote = document.getElementById("font_quote").classList.contains("on");
+  f.underline = document.getElementById("font_underline").classList.contains("on");
+  f.typing = document.getElementById("font_typing").classList.contains("on");
+  f.link = document.getElementById("fontLink").value.trim();
+  saveState(); toast("Сохранено");
+  if (tg && tg.sendData) {
+    tg.sendData(JSON.stringify({ action: "font_settings", settings: f }));
+  }
+}
+
+// ---------- Mute ----------
+function renderMute(){
+  const chats = state.chats;
+  const mutedCount = chats.filter(c=>c.muted).length;
+  return `
+    <div class="section-header">Мут — управление чатами</div>
+    <div class="card">
+      <div class="card-title">⚙️ Настроить мут</div>
+      <div class="field"><label>Текст ответного сообщения</label><textarea id="muteReply">${esc(state.muteReply)}</textarea></div>
+      <button class="btn btn-primary btn-block" onclick="saveMuteReply()">Сохранить настройки</button>
+    </div>
+    <div class="section-header">Список чатов (${mutedCount} в муте)</div>
+    <div style="padding:0 14px;">
+      ${chats.map(c=>`
+        <div class="chat-item ${c.muted?'active-mute':''}" onclick="toggleMute(${c.id})">
+          <div class="chat-avatar">${c.avatarUrl?`<img src="${c.avatarUrl}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" alt="">`:c.avatar}</div>
+          <div style="flex:1">
+            <div class="chat-name">${esc(c.name)}</div>
+            <div class="chat-sub">${c.muted?'🔇 В муте':'Активен'}</div>
+          </div>
+          <div style="color:${c.muted?'var(--red)':'var(--muted)'}">${c.muted?'ON':'OFF'}</div>
+        </div>
+      `).join("")}
+    </div>
+    ${bottomBack()}
+  `;
+}
+function saveMuteReply(){ state.muteReply = document.getElementById("muteReply").value.trim(); saveState(); toast("Сохранено");
+  if (tg && tg.sendData) tg.sendData(JSON.stringify({ action: "mute_settings", replyText: state.muteReply }));
+}
+function toggleMute(id){ const c = state.chats.find(x=>x.id===id); c.muted = !c.muted; saveState(); render(); toast(c.muted?"Мут включён":"Мут снят");
+  if (tg && tg.sendData) {
+    tg.sendData(JSON.stringify({ action: "mute_toggle", chatId: id, chatName: c.name, muted: c.muted, replyText: state.muteReply }));
+  }
+}
+
+// ---------- Premium modal ----------
+function openPremium(){
+  openModal(`
+    <h2><img src="icons/crown.svg" style="width:22px;height:22px;vertical-align:middle;" alt=""> Premium</h2>
+    <div class="card-desc">Открывает «Сообщения с кнопками» и другие возможности.</div>
+    <div class="preview-box" style="margin:12px 0;">
+      Цена: <s style="opacity:.65;">250</s> 99 <img src="icons/star.png" style="width:14px;height:14px;vertical-align:middle;" alt="">
+    </div>
+    <div class="card-desc" style="font-size:12px;">Для покупки напиши @judi_666. После заявки ожидай администрацию.</div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="buyPremium()">Купить</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Отмена</button>
+    </div>
+  `);
+}
+function buyPremium(){
+  if (canSendData()) {
+    const payload = { action: "buy_premium" };
+    console.log("SEND DATA:", payload);
+    try {
+      tg.sendData(JSON.stringify(payload));
+      closeModal();
+      toast("Запрос отправлен. Проверь чат с ботом.");
+    } catch(e) {
+      console.error("sendData error:", e);
+      toast("Ошибка отправки в бота. Смотри консоль.");
+      return;
+    }
+    setTimeout(() => { try { tg.close(); } catch(e){} }, 1200);
+  } else {
+    state.premium = true; saveState();
+    document.getElementById("premiumBadge").innerHTML = '<iconify-icon icon="tabler:crown" width="14" height="14"></iconify-icon> Premium';
+    closeModal(); render(); toast("Premium активирован (демо)");
+  }
+}
+
+// ---------- Modal helpers ----------
+function openModal(html){ document.getElementById("modalRoot")?.remove(); const d = document.createElement("div"); d.id="modalRoot"; d.className="modal-backdrop"; d.innerHTML=`<div class="modal">${html}</div>`; d.addEventListener("click",e=>{ if(e.target===d) closeModal(); }); document.body.appendChild(d); }
+function closeModal(){ const d = document.getElementById("modalRoot"); if(d) d.remove(); }
+
+// ---------- Events ----------
+function bindEvents(){
+  const s = document.getElementById("chatSearch");
+  if (s){ s.addEventListener("input", e=>{ window._chatQuery = e.target.value; renderChatsView(); }); }
+}
+function openAddChat(){
+    openModal(`
+        <h2>Подключение чатов</h2>
+
+        <div class="card-desc" style="line-height:1.7;">
+            JUDI получает чаты автоматически через
+            Telegram Business.
+            <br><br>
+
+            <b>1.</b> Открой Telegram → Настройки
+            → Telegram Business → Чат-боты.
+            <br>
+
+            <b>2.</b> Выбери JUDI.
+            <br>
+
+            <b>3.</b> Выбери нужные чаты.
+            <br>
+
+            <b>4.</b> Разреши боту отвечать на сообщения.
+            <br><br>
+
+            После этого отправь сообщение в выбранный чат —
+            он автоматически появится в JUDI.
+        </div>
+
+        <div class="modal-actions">
+            <button
+                class="btn btn-primary"
+                onclick="closeModal(); renderChatsView();">
+                Понятно
+            </button>
+        </div>
+    `);
+}
+
+
+function confirmAddChat(){
+    // Ничего не добавляем вручную.
+    // Чаты приходят только от Telegram Business.
+    toast("Чат добавляется автоматически после подключения через Telegram Business");
+}
+function renderChatsView(){
+  // re-render only chats view without losing focus
+  const v = document.getElementById("view");
+  if (!v) return;
+  v.innerHTML = renderChats();
+  bindEvents();
+  const s = document.getElementById("chatSearch");
+  if (s){ s.focus(); s.setSelectionRange(s.value.length, s.value.length); }
+}
+
+function esc(s){ return String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+// initial
+const requestedSection = new URLSearchParams(window.location.search).get("open");
+const allowedSections = ["spam","afk","mute","streak","font","buttons","games","commands","history"];
+if (allowedSections.includes(requestedSection)) openSection(requestedSection);
+else render();
+</script>
+<div id="modalRoot"></div>
+</body>
+</html>
